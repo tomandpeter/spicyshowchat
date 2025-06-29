@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>辣聊 - 房间选择</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/include.js"></script>
 </head>
 <body class="login-bg">
+  <div data-include="partials/header.html"></div>
   <div class="login-box">
     <h2>辣聊聊天室</h2>
     <input id="nickname" placeholder="请输入昵称" maxlength="16" />
@@ -16,7 +18,7 @@
     </select>
     <button onclick="enterChat()">进入聊天室</button>
   </div>
-  <footer>Powered by spicyshow.xyz</footer>
+  <div data-include="partials/footer.html"></div>
   <script>
     function enterChat() {
       const nick = document.getElementById('nickname').value.trim();
