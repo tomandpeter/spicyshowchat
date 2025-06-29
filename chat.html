@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>辣聊 - 聊天室</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="room-list">
+      <h3>聊天室</h3>
+      <ul>
+        <li data-room="city">同城聊天室</li>
+        <li data-room="love">感情聊天室</li>
+        <li data-room="crypto">加密货币聊天室</li>
+      </ul>
+      <button id="logout">切换房间/昵称</button>
+    </aside>
+    <main class="chat-main">
+      <header>
+        <span id="room-name">聊天室</span>
+        <span class="user">昵称：<b id="my-nick"></b></span>
+      </header>
+      <section id="chat-area" class="chat-area">
+        <!-- 聊天内容 -->
+      </section>
+      <footer>
+        <input id="msg-input" placeholder="说点什么..." maxlength="200" autocomplete="off"/>
+        <button id="send-btn">发送</button>
+      </footer>
+    </main>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
