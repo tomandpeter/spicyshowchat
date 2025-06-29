@@ -3,19 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>辣聊 - 聊天室</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/include.js"></script>
 </head>
 <body>
+  <div data-include="partials/header.html"></div>
   <div class="layout">
-    <aside class="room-list">
-      <h3>聊天室</h3>
-      <ul>
-        <li data-room="city">同城聊天室</li>
-        <li data-room="love">感情聊天室</li>
-        <li data-room="crypto">加密货币聊天室</li>
-      </ul>
-      <button id="logout">切换房间/昵称</button>
-    </aside>
+    <aside class="room-list" data-include="partials/roomlist.html"></aside>
     <main class="chat-main">
       <header>
         <span id="room-name">聊天室</span>
@@ -30,6 +24,7 @@
       </footer>
     </main>
   </div>
-  <script src="main.js"></script>
+  <div data-include="partials/footer.html"></div>
+  <script src="assets/js/main.js"></script>
 </body>
 </html>
