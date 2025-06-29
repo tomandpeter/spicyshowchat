@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>辣聊 - 房间选择</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-bg">
+  <div class="login-box">
+    <h2>辣聊聊天室</h2>
+    <input id="nickname" placeholder="请输入昵称" maxlength="16" />
+    <select id="room">
+      <option value="city">同城聊天室</option>
+      <option value="love">感情聊天室</option>
+      <option value="crypto">加密货币聊天室</option>
+    </select>
+    <button onclick="enterChat()">进入聊天室</button>
+  </div>
+  <footer>Powered by spicyshow.xyz</footer>
+  <script>
+    function enterChat() {
+      const nick = document.getElementById('nickname').value.trim();
+      const room = document.getElementById('room').value;
+      if (!nick) return alert("请输入昵称！");
+      localStorage.setItem('nickname', nick);
+      localStorage.setItem('room', room);
+      location.href = "chat.html";
+    }
+  </script>
+</body>
+</html>
