@@ -1,7 +1,6 @@
 // main.js for Durable Object 聊天室
 // 支持房间切换、用户列表、群聊/私聊，兼容 Cloudflare Durable Object 聊天室 Worker
 
-// 1. 读取房间名
 function getRoomFromURL() {
   const params = new URLSearchParams(window.location.search);
   return params.get('room');
@@ -12,14 +11,14 @@ const room = roomFromUrl || localStorage.getItem('room') || "city";
 const roomNames = { city: "同城聊天室", love: "感情聊天室", crypto: "加密货币聊天室" };
 localStorage.setItem('room', room);
 
-let privateTarget = null; // 当前私聊对象
+let privateTarget = null;
 
 if (document.getElementById('my-nick')) {
   document.getElementById('my-nick').innerText = nick;
   document.getElementById('room-name').innerText = roomNames[room] || "聊天室";
 }
 
-// 2. 高亮房间 & 切换逻辑
+// 房间切换逻辑
 if (document.querySelector('.room-list')) {
   document.querySelectorAll('.room-list li').forEach(li => {
     if (li.dataset.room === room) li.classList.add('active');
@@ -30,7 +29,7 @@ if (document.querySelector('.room-list')) {
   });
 }
 
-// 3. 注销
+// 注销
 if (document.getElementById('logout')) {
   document.getElementById('logout').onclick = () => {
     localStorage.removeItem('nickname');
@@ -90,7 +89,7 @@ function escapeHTML(s) {
   })[c]);
 }
 
-// 4. 连接 Durable Object 的 WebSocket（ws://host/room/房间名）
+// 连接 Durable Object 的 WebSocket
 const protocol = location.protocol === "https:" ? "wss:" : "ws:";
 const wsUrl = `${protocol}//${location.host}/room/${encodeURIComponent(room)}`;
 const ws = new WebSocket(wsUrl);
@@ -101,7 +100,6 @@ ws.onopen = () => {
   ws.send(JSON.stringify({ type: "join", nickname }));
 };
 
-// 5. 收消息
 ws.onmessage = evt => {
   let msg;
   try { msg = JSON.parse(evt.data); } catch (e) { return; }
@@ -130,22 +128,20 @@ ws.onmessage = evt => {
       };
       userList.appendChild(li);
     });
-  } else if (msg.type === "ping") {
-    // 可选：心跳包，什么都不用做
   }
 };
 
 ws.onerror = () => addMsg("系统", "连接服务器出错，请稍后重试", false);
 ws.onclose = () => addMsg("系统", "与服务器连接已断开", false);
 
-// 6. 心跳保活
+// 心跳保活
 setInterval(() => {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: "ping" }));
   }
 }, 20000);
 
-// 7. 发送消息
+// 发送消息
 if (sendBtn) {
   sendBtn.onclick = () => {
     const txt = input.value.trim();
