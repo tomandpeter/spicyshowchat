@@ -1,10 +1,6 @@
-// 简单的内存在线连接记录，每台实例独立，适合入门和 demo
-const activeConnections = {}; // { chatId: Set of ws }
-
-function getChatId(userA, userB) {
-  // 保证 chatId 唯一且顺序无关
-  return [userA, userB].sort().join("_");
-}
+// 适合demo的简单房间&在线用户管理
+const roomConnections = {}; // { roomName: Set of ws }
+const roomUsers = {}; // { roomName: Set of nickname }
 
 export default {
   async fetch(request, env, ctx) {
@@ -13,53 +9,67 @@ export default {
       const [client, server] = Object.values(pair);
       server.accept();
 
-      // 记录连接归属 chatId
-      let chatId = null;
+      let room = null;
+      let nickname = null;
+
+      function broadcastUserList(room) {
+        if (roomConnections[room]) {
+          const users = Array.from(roomUsers[room] || []);
+          const msg = JSON.stringify({ type: "userlist", users });
+          for (const ws of roomConnections[room]) {
+            try { ws.send(msg); } catch (e) {}
+          }
+        }
+      }
 
       server.addEventListener("message", async (event) => {
         try {
           const data = JSON.parse(event.data);
 
           if (data.type === "join") {
-            // data: { type: "join", userId: "A", targetId: "B" }
-            chatId = getChatId(data.userId, data.targetId);
+            // data: { type: "join", nickname, room }
+            room = data.room;
+            nickname = data.nickname;
 
-            if (!activeConnections[chatId]) activeConnections[chatId] = new Set();
-            activeConnections[chatId].add(server);
+            if (!roomConnections[room]) roomConnections[room] = new Set();
+            if (!roomUsers[room]) roomUsers[room] = new Set();
+            roomConnections[room].add(server);
+            roomUsers[room].add(nickname);
 
-            // 推送历史消息
-            const historyRaw = await env.KV_BINDING.get(chatId);
-            if (historyRaw) {
-              const history = JSON.parse(historyRaw);
-              for (const msg of history) {
-                server.send(JSON.stringify({ type: "message", ...msg }));
-              }
+            // 广播用户列表
+            broadcastUserList(room);
+
+            // 可选: 发送欢迎消息
+            const welcome = { type: "system", text: `${nickname} 加入了房间` };
+            for (const ws of roomConnections[room]) {
+              try { ws.send(JSON.stringify(welcome)); } catch (e) {}
             }
 
-          } else if (data.type === "message") {
-            // data: { type: "message", chatId, from, to, content }
+          } else if (data.type === "chat") {
+            // 群聊消息
             const msg = {
-              from: data.from,
-              to: data.to,
-              content: data.content,
-              timestamp: Date.now(),
+              type: "chat",
+              nickname,
+              text: data.text,
+              time: Date.now()
+            };
+            for (const ws of roomConnections[room] || []) {
+              try { ws.send(JSON.stringify(msg)); } catch (e) {}
+            }
+
+          } else if (data.type === "private") {
+            // 私聊消息，只发给当前用户和目标用户
+            const msg = {
+              type: "private",
+              nickname,
+              text: data.text,
+              time: Date.now(),
+              target: data.target
             };
 
-            // 持久化到 KV
-            let messages = [];
-            const oldRaw = await env.KV_BINDING.get(data.chatId);
-            if (oldRaw) {
-              messages = JSON.parse(oldRaw);
-            }
-            messages.push(msg);
-            await env.KV_BINDING.put(data.chatId, JSON.stringify(messages));
-
-            // 实时推送给当前房间的所有连接
-            if (activeConnections[data.chatId]) {
-              for (const ws of activeConnections[data.chatId]) {
-                try {
-                  ws.send(JSON.stringify({ type: "message", ...msg }));
-                } catch (e) {/* 忽略发送失败 */}
+            for (const ws of roomConnections[room] || []) {
+              if (ws._nickname === data.target || ws === server) {
+                try { ws.send(JSON.stringify(msg)); } catch (e) {}
               }
             }
           }
@@ -68,17 +78,27 @@ export default {
         }
       });
 
+      // 给ws挂载nickname用于私聊
+      server._nickname = nickname;
+
       server.addEventListener("close", () => {
-        if (chatId && activeConnections[chatId]) {
-          activeConnections[chatId].delete(server);
-          if (activeConnections[chatId].size === 0) delete activeConnections[chatId];
+        if (room && roomConnections[room]) {
+          roomConnections[room].delete(server);
+          if (nickname && roomUsers[room]) roomUsers[room].delete(nickname);
+          broadcastUserList(room);
+          // 可选: 广播离开消息
+          const bye = { type: "system", text: `${nickname} 离开了房间` };
+          for (const ws of roomConnections[room] || []) {
+            try { ws.send(JSON.stringify(bye)); } catch (e) {}
+          }
         }
       });
 
       server.addEventListener("error", () => {
-        if (chatId && activeConnections[chatId]) {
-          activeConnections[chatId].delete(server);
-          if (activeConnections[chatId].size === 0) delete activeConnections[chatId];
+        if (room && roomConnections[room]) {
+          roomConnections[room].delete(server);
+          if (nickname && roomUsers[room]) roomUsers[room].delete(nickname);
+          broadcastUserList(room);
         }
       });
 
@@ -86,6 +106,6 @@ export default {
     }
 
     // HTTP 访问返回说明
-    return new Response("Hello from spicyshowchat Worker!", { status: 200 });
+    return new Response("Hello from spicyshowchat Worker (rooms demo)!", { status: 200 });
   }
 };
