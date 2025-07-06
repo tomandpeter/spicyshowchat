@@ -57,7 +57,7 @@ function escapeHTML(s) {
 }
 
 // 连接 WebSocket
-const ws = new WebSocket("wss://你的worker子域名.workers.dev/ws");
+const ws = new WebSocket("wss://chat.spicyshow.xyz/ws");
 
 ws.onopen = () => {
   ws.send(JSON.stringify({ type: "join", nickname: nick, room }));
