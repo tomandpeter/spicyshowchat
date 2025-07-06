@@ -1,12 +1,38 @@
+// 聊天室核心逻辑（支持群聊和私聊）
+
 const nick = localStorage.getItem('nickname') || "匿名用户";
 const room = localStorage.getItem('room') || "city";
 const roomNames = { city: "同城聊天室", love: "感情聊天室", crypto: "加密货币聊天室" };
 
-let privateTarget = null; // 当前私聊对象nick（未选中时为null）
+let privateTarget = null; // 当前私聊对象，未选中时为null
 
-document.getElementById('my-nick').innerText = nick;
-document.getElementById('room-name').innerText = roomNames[room] || "聊天室";
-const ws = new WebSocket("wss://ws.chat.spicyshow.xyz");
+if (document.getElementById('my-nick')) {
+  document.getElementById('my-nick').innerText = nick;
+  document.getElementById('room-name').innerText = roomNames[room] || "聊天室";
+}
+
+// 高亮当前房间
+if (document.querySelector('.room-list')) {
+  document.querySelectorAll('.room-list li').forEach(li => {
+    if (li.dataset.room === room) li.classList.add('active');
+    li.onclick = () => {
+      if (li.dataset.room === room) return;
+      localStorage.setItem('room', li.dataset.room);
+      location.reload();
+    }
+  });
+}
+
+// 注销切换
+if (document.getElementById('logout')) {
+  document.getElementById('logout').onclick = () => {
+    localStorage.removeItem('nickname');
+    localStorage.removeItem('room');
+    location.href = "index.html";
+  }
+}
+
+// 发送消息与渲染
 const chatArea = document.getElementById('chat-area');
 const input = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
@@ -14,12 +40,15 @@ const userList = document.getElementById('user-list'); // 右侧用户列表容�
 const chatModeTip = document.getElementById('chat-mode-tip'); // 顶部提示容器
 
 function updateChatModeTip() {
+  if (!chatModeTip) return;
   if (privateTarget) {
     chatModeTip.innerHTML = `你对 <b>${privateTarget}</b> 说... <a href="#" id="cancel-private">(取消私聊)</a>`;
     document.getElementById('cancel-private').onclick = () => {
       privateTarget = null;
       updateChatModeTip();
       input.focus();
+      // 高亮回归
+      document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active'));
       return false;
     }
   } else {
@@ -51,8 +80,13 @@ function addMsg(nickname, text, isMe = false, time = null, isPrivate = false, pe
 }
 
 function escapeHTML(s) {
-  return String(s).replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+  return String(s).replace(/[<>"'&]/g, c => ({
+    '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'
+  })[c]);
 }
+
+// 连接 WebSocket
+const ws = new WebSocket("wss://ws.chat.spicyshow.xyz");
 
 ws.onopen = () => {
   ws.send(JSON.stringify({ type: "join", nickname: nick, room }));
@@ -76,9 +110,13 @@ ws.onmessage = evt => {
       if (u === nick) return; // 不显示自己
       const li = document.createElement('li');
       li.innerText = u;
+      if (u === privateTarget) li.classList.add('active');
       li.onclick = () => {
         privateTarget = u;
         updateChatModeTip();
+        // 高亮
+        userList.querySelectorAll('li').forEach(x => x.classList.remove('active'));
+        li.classList.add('active');
         input.focus();
       };
       userList.appendChild(li);
@@ -116,7 +154,3 @@ if (sendBtn) {
 
 // 初始化提示
 updateChatModeTip();
-
-// 群聊/私聊样式建议补充（可加到css）
-// .msg-private { background: #fff3cd; }
-// .msg-private-tag { color: #dc3545; font-size: 0.9em; margin-left: 4px; }
