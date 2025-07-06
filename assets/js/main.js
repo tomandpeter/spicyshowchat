@@ -1,4 +1,4 @@
-// 聊天室核心逻辑（静态演示版，后续可对接WebSocket/API）
+// 聊天室核心逻辑（对接 Cloudflare Worker WebSocket 版）
 
 const nick = localStorage.getItem('nickname') || "匿名用户";
 const room = localStorage.getItem('room') || "city";
@@ -30,40 +30,68 @@ if (document.getElementById('logout')) {
   }
 }
 
-// 发送消息（静态演示，后续对接API）
+// 发送消息与渲染
 const chatArea = document.getElementById('chat-area');
 const input = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
 
-function addMsg(nick, text, isMe = false) {
+function addMsg(nick, text, isMe = false, time = null) {
   const msg = document.createElement('div');
   msg.className = "msg-item" + (isMe ? " msg-me" : "");
   msg.innerHTML = `
     <div class="msg-avatar">${nick[0]}</div>
     <div>
       <div class="msg-nick">${nick}${isMe ? "（我）" : ""}</div>
-      <div class="msg-content">${text.replace(/[<>"']/g, '')}</div>
+      <div class="msg-content">${escapeHTML(text)}</div>
+      ${time ? `<div class="msg-time">${new Date(time).toLocaleTimeString()}</div>` : ""}
     </div>
   `;
   chatArea.appendChild(msg);
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
+function escapeHTML(s) {
+  return String(s).replace(/[<>"'&]/g, c => ({
+    '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;'
+  })[c]);
+}
+
+// 连接 WebSocket
+const ws = new WebSocket("wss://你的worker子域名.workers.dev/ws");
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: "join", nickname: nick, room }));
+  // 加载历史消息（建议用 Worker 的 history 路径，跨域需代理或CORS）
+  fetch(`/history/${room}`)
+    .then(r => r.json())
+    .then(history => {
+      history.forEach(msg => addMsg(msg.nickname, msg.text, msg.nickname === nick, msg.time));
+    });
+};
+
+ws.onmessage = evt => {
+  const msg = JSON.parse(evt.data);
+  if (msg.type === "chat") {
+    addMsg(msg.nickname, msg.text, msg.nickname === nick, msg.time);
+  } else if (msg.type === "system") {
+    addMsg("系统", msg.text, false, msg.time || Date.now());
+  }
+};
+
+ws.onerror = () => {
+  addMsg("系统", "连接服务器出错，请稍后重试", false);
+};
+
+ws.onclose = () => {
+  addMsg("系统", "与服务器连接已断开", false);
+};
+
 if (sendBtn) {
   sendBtn.onclick = () => {
     const txt = input.value.trim();
     if (!txt) return;
-    addMsg(nick, txt, true);
+    ws.send(JSON.stringify({ type: "chat", text: txt }));
     input.value = "";
-    // TODO: 这里可以调用API发送消息
-    // fetch('/api/room?id=' + room, {method:'POST', body: JSON.stringify({nick, text: txt})})
   };
   input.onkeydown = e => { if (e.key === "Enter") sendBtn.onclick(); }
-}
-
-// 静态演示历史消息
-if (chatArea && !chatArea.dataset.demoed) {
-  chatArea.dataset.demoed = 1;
-  addMsg("小辣椒", "欢迎来到辣聊聊天室，快来和大家打个招呼吧！");
-  addMsg("区块链小王", "大家好，我是新来的，喜欢加密货币的朋友一起聊聊！", false);
 }
