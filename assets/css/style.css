@@ -272,3 +272,89 @@ body, html {
 .login-box button:hover {
   background: #d35400;
 }
+
+/* ====== 聊天室整体背景 ====== */
+body {
+  background: linear-gradient(120deg, #fbc2eb 0%, #a6c1ee 100%);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* ====== 聊天主卡片 ====== */
+.layout {
+  margin-top: 40px;
+  box-shadow: 0 4px 32px 0 #e3e3e3;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  animation: fadein 0.7s;
+  display: flex;
+  height: 90vh;
+  max-width: 1200px;
+  min-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(40px);}
+  to   { opacity: 1; transform: translateY(0);}
+}
+
+/* ====== header 美化 ====== */
+.chat-main header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 10px 24px;
+  background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 8px #f6eaff;
+}
+
+/* title 超链接 */
+.room-title-link {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #e67e22;
+  text-decoration: none;
+  background: #fffbe7;
+  padding: 6px 18px;
+  border-radius: 13px;
+  box-shadow: 0 1px 3px #eee;
+  transition: background 0.15s, color 0.15s;
+}
+.room-title-link:hover {
+  background: #ffe0b2;
+  color: #d35400;
+  text-decoration: underline;
+}
+
+.chat-main header .user {
+  font-size: 1em;
+  color: #888;
+  background: #f4f4f4;
+  padding: 6px 16px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+.chat-main header .user b {
+  color: #e67e22;
+}
+
+/* 房间切换链接 */
+.allrooms-link {
+  font-size: 0.95em;
+  color: #0097a7;
+  margin-left: 18px;
+  text-decoration: underline;
+  background: #e0f7fa;
+  border-radius: 7px;
+  padding: 4px 10px;
+  transition: background 0.17s, color 0.17s;
+}
+.allrooms-link:hover {
+  color: #00796b;
+  background: #b2ebf2;
+}
+
