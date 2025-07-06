@@ -14,6 +14,7 @@
       <header>
         <span id="room-name">聊天室</span>
         <span class="user">昵称：<b id="my-nick"></b></span>
+        <div id="chat-mode-tip" class="chat-mode-tip"></div>
       </header>
       <section id="chat-area" class="chat-area">
         <!-- 聊天内容 -->
@@ -23,6 +24,10 @@
         <button id="send-btn">发送</button>
       </footer>
     </main>
+    <aside class="user-list">
+      <div class="user-list-title">在线用户</div>
+      <ul id="user-list"></ul>
+    </aside>
   </div>
   <div data-include="partials/footer.html"></div>
   <script src="assets/js/main.js"></script>
