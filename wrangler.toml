@@ -3,5 +3,5 @@ main = "worker.js"
 compatibility_date = "2025-07-06"
 
 kv_namespaces = [
-  { binding = "CHAT_KV", id = "你的KV空间ID" }
+  { binding = "KV_BINDING", id = "11f07f5503684be39db8fdc8aa330cdb" }
 ]
