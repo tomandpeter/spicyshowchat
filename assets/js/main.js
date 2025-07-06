@@ -1,37 +1,36 @@
-// 聊天室核心逻辑（支持群聊和私聊，支持URL参数切换房间）
+// main.js for Durable Object 聊天室
+// 支持房间切换、用户列表、群聊/私聊，兼容 Cloudflare Durable Object 聊天室 Worker
 
-// 读取 URL 参数
+// 1. 读取房间名
 function getRoomFromURL() {
   const params = new URLSearchParams(window.location.search);
   return params.get('room');
 }
-
 const nick = localStorage.getItem('nickname') || "匿名用户";
 const roomFromUrl = getRoomFromURL();
 const room = roomFromUrl || localStorage.getItem('room') || "city";
 const roomNames = { city: "同城聊天室", love: "感情聊天室", crypto: "加密货币聊天室" };
 localStorage.setItem('room', room);
 
-let privateTarget = null; // 当前私聊对象，未选中时为null
+let privateTarget = null; // 当前私聊对象
 
 if (document.getElementById('my-nick')) {
   document.getElementById('my-nick').innerText = nick;
   document.getElementById('room-name').innerText = roomNames[room] || "聊天室";
 }
 
-// 高亮当前房间
+// 2. 高亮房间 & 切换逻辑
 if (document.querySelector('.room-list')) {
   document.querySelectorAll('.room-list li').forEach(li => {
     if (li.dataset.room === room) li.classList.add('active');
     li.onclick = () => {
       if (li.dataset.room === room) return;
-      // 切换房间时跳转到带参数的新链接
       window.location.href = `/chat?room=${encodeURIComponent(li.dataset.room)}`;
     }
   });
 }
 
-// 注销切换
+// 3. 注销
 if (document.getElementById('logout')) {
   document.getElementById('logout').onclick = () => {
     localStorage.removeItem('nickname');
@@ -40,7 +39,6 @@ if (document.getElementById('logout')) {
   }
 }
 
-// 发送消息与渲染
 const chatArea = document.getElementById('chat-area');
 const input = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
@@ -92,15 +90,21 @@ function escapeHTML(s) {
   })[c]);
 }
 
-// 连接 WebSocket
-const ws = new WebSocket("wss://ws.chat.spicyshow.xyz");
+// 4. 连接 Durable Object 的 WebSocket（ws://host/room/房间名）
+const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+const wsUrl = `${protocol}//${location.host}/room/${encodeURIComponent(room)}`;
+const ws = new WebSocket(wsUrl);
 
+let wsOpen = false;
 ws.onopen = () => {
-  ws.send(JSON.stringify({ type: "join", nickname: nick, room }));
+  wsOpen = true;
+  ws.send(JSON.stringify({ type: "join", nickname }));
 };
 
+// 5. 收消息
 ws.onmessage = evt => {
-  const msg = JSON.parse(evt.data);
+  let msg;
+  try { msg = JSON.parse(evt.data); } catch (e) { return; }
   if (msg.type === "chat") {
     addMsg(msg.nickname, msg.text, msg.nickname === nick, msg.time, false);
   } else if (msg.type === "private") {
@@ -110,8 +114,9 @@ ws.onmessage = evt => {
   } else if (msg.type === "system") {
     addMsg("系统", msg.text, false, msg.time || Date.now());
   } else if (msg.type === "userlist") {
+    // 渲染在线用户列表
     userList.innerHTML = '';
-    msg.users.forEach(u => {
+    (msg.users || []).forEach(u => {
       if (u === nick) return; // 不显示自己
       const li = document.createElement('li');
       li.innerText = u;
@@ -125,30 +130,36 @@ ws.onmessage = evt => {
       };
       userList.appendChild(li);
     });
+  } else if (msg.type === "ping") {
+    // 可选：心跳包，什么都不用做
   }
 };
 
 ws.onerror = () => addMsg("系统", "连接服务器出错，请稍后重试", false);
 ws.onclose = () => addMsg("系统", "与服务器连接已断开", false);
 
+// 6. 心跳保活
+setInterval(() => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "ping" }));
+  }
+}, 20000);
+
+// 7. 发送消息
 if (sendBtn) {
   sendBtn.onclick = () => {
     const txt = input.value.trim();
-    if (!txt) return;
+    if (!txt || ws.readyState !== WebSocket.OPEN) return;
     if (privateTarget) {
       ws.send(JSON.stringify({
         type: "private",
         text: txt,
-        target: privateTarget,
-        nickname: nick,
-        room
+        target: privateTarget
       }));
     } else {
       ws.send(JSON.stringify({
         type: "chat",
-        text: txt,
-        nickname: nick,
-        room
+        text: txt
       }));
     }
     input.value = "";
@@ -156,5 +167,5 @@ if (sendBtn) {
   input.onkeydown = e => { if (e.key === "Enter") sendBtn.onclick(); }
 }
 
-// 初始化提示
+// 初始化
 updateChatModeTip();
