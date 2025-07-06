@@ -2,9 +2,10 @@ name = "durable-object-chat"
 main = "worker.js"
 compatibility_date = "2024-07-01"
 
-[[durable_objects]]
-binding = "CHATROOM"
-class_name = "ChatRoomDurableObject"
+[durable_objects]
+bindings = [
+  { name = "CHATROOM", class_name = "ChatRoomDurableObject" }
+]
 
 [vars]
 # 你可以在这里定义环境变量
