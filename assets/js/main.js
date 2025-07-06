@@ -1,8 +1,16 @@
-// 聊天室核心逻辑（支持群聊和私聊）
+// 聊天室核心逻辑（支持群聊和私聊，支持URL参数切换房间）
+
+// 读取 URL 参数
+function getRoomFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('room');
+}
 
 const nick = localStorage.getItem('nickname') || "匿名用户";
-const room = localStorage.getItem('room') || "city";
+const roomFromUrl = getRoomFromURL();
+const room = roomFromUrl || localStorage.getItem('room') || "city";
 const roomNames = { city: "同城聊天室", love: "感情聊天室", crypto: "加密货币聊天室" };
+localStorage.setItem('room', room);
 
 let privateTarget = null; // 当前私聊对象，未选中时为null
 
@@ -17,8 +25,8 @@ if (document.querySelector('.room-list')) {
     if (li.dataset.room === room) li.classList.add('active');
     li.onclick = () => {
       if (li.dataset.room === room) return;
-      localStorage.setItem('room', li.dataset.room);
-      location.reload();
+      // 切换房间时跳转到带参数的新链接
+      window.location.href = `/chat?room=${encodeURIComponent(li.dataset.room)}`;
     }
   });
 }
@@ -36,8 +44,8 @@ if (document.getElementById('logout')) {
 const chatArea = document.getElementById('chat-area');
 const input = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
-const userList = document.getElementById('user-list'); // 右侧用户列表容器
-const chatModeTip = document.getElementById('chat-mode-tip'); // 顶部提示容器
+const userList = document.getElementById('user-list');
+const chatModeTip = document.getElementById('chat-mode-tip');
 
 function updateChatModeTip() {
   if (!chatModeTip) return;
@@ -47,7 +55,6 @@ function updateChatModeTip() {
       privateTarget = null;
       updateChatModeTip();
       input.focus();
-      // 高亮回归
       document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active'));
       return false;
     }
@@ -97,14 +104,12 @@ ws.onmessage = evt => {
   if (msg.type === "chat") {
     addMsg(msg.nickname, msg.text, msg.nickname === nick, msg.time, false);
   } else if (msg.type === "private") {
-    // 私聊消息，只有你或对方能收到
     const isMe = msg.nickname === nick;
     const peer = isMe ? msg.target : msg.nickname;
     addMsg(msg.nickname, msg.text, isMe, msg.time, true, peer);
   } else if (msg.type === "system") {
     addMsg("系统", msg.text, false, msg.time || Date.now());
   } else if (msg.type === "userlist") {
-    // 更新在线用户列表
     userList.innerHTML = '';
     msg.users.forEach(u => {
       if (u === nick) return; // 不显示自己
@@ -114,7 +119,6 @@ ws.onmessage = evt => {
       li.onclick = () => {
         privateTarget = u;
         updateChatModeTip();
-        // 高亮
         userList.querySelectorAll('li').forEach(x => x.classList.remove('active'));
         li.classList.add('active');
         input.focus();
