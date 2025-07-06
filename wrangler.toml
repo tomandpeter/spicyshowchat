@@ -12,3 +12,7 @@ bindings = [
 
 [triggers]
 # 可选，自动部署等
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoomDurableObject"]
