@@ -106,7 +106,7 @@ function initChat() {
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "join", nickname }));
+    ws.send(JSON.stringify({ type: "join", nickname: nick }));
   };
 
   ws.onmessage = evt => {
