@@ -2,12 +2,10 @@ name = "cloudflare-do-chat"
 main = "worker.js"
 compatibility_date = "2024-07-01"
 
-[[durable_objects]]
-name = "CHATROOM"
-class_name = "ChatRoom"
-
-[durable_objects.bindings]
-CHATROOM = "cloudflare-do-chat_ChatRoom"
+[durable_objects]
+bindings = [
+  { name = "CHATROOM", class_name = "ChatRoom" }
+]
 
 [[migrations]]
 tag = "v1"
