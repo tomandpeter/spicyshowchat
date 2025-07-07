@@ -1,6 +1,6 @@
-// main.js for Durable Object 聊天室（升级版，兼容动态 include，支持房间切换、用户列表、群聊/私聊）
+// main.js for Durable Object 聊天室（自定义域名优化版）
+// 适配 chat.spicyshow.xyz 为后端 WebSocket 服务
 
-// 等待所有 include 加载完毕再初始化
 document.addEventListener('includes-loaded', initChat);
 
 function getRoomFromURL() {
@@ -100,9 +100,10 @@ function initChat() {
     })[c]);
   }
 
-  // 连接 Durable Object 的 WebSocket
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${location.host}/room/${encodeURIComponent(room)}`;
+  // WebSocket 连接 Durable Object，强制使用自定义域名
+  const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+  // 始终用 chat.spicyshow.xyz 作为 WebSocket 服务端
+  const wsUrl = `${wsProtocol}//chat.spicyshow.xyz/room/${encodeURIComponent(room)}`;
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
@@ -141,15 +142,29 @@ function initChat() {
     }
   };
 
-  ws.onerror = () => addMsg("系统", "连接服务器出错，请稍后重试", false);
-  ws.onclose = () => addMsg("系统", "与服务器连接已断开", false);
+  ws.onerror = (evt) => {
+    addMsg("系统", "连接服务器出错，请稍后重试", false);
+    console.error("WebSocket error:", evt);
+  };
+  ws.onclose = (evt) => {
+    addMsg("系统", `与服务器连接已断开（${evt.code}）`, false);
+    console.warn("WebSocket closed:", evt);
+  };
 
   // 心跳保活
-  setInterval(() => {
+  const heartbeat = setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "ping" }));
     }
   }, 20000);
+
+  // 页面卸载时关闭 ws
+  window.addEventListener('beforeunload', () => {
+    clearInterval(heartbeat);
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      ws.close();
+    }
+  });
 
   // 发送消息
   if (sendBtn && input) {
