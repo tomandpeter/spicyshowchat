@@ -1,4 +1,4 @@
-export class ChatRoom {
+export class ChatRoomDurableObject {
   constructor(state, env) {
     this.state = state;
     this.env = env;
