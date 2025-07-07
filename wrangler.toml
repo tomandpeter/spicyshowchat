@@ -1,12 +1,12 @@
-name = "cloudflare-do-chat"
+name = "spicyshowchat"
 main = "worker.js"
 compatibility_date = "2024-07-01"
 
 [durable_objects]
 bindings = [
-  { name = "CHATROOM", class_name = "ChatRoom" }
+  { name = "CHATROOM", class_name = "ChatRoomDurableObject" }
 ]
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ChatRoom"]
+new_sqlite_classes = ["ChatRoomDurableObject"]
